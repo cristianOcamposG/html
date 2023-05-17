@@ -1,1 +1,505 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE htm>
+<html lang="es-PY"
+      xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+      xmlns:f="http://xmlns.jcp.org/jsf/core"
+      xmlns:pt="http://xmlns.jcp.org/jsf/passthrough"
+      xmlns:jsf="http://xmlns.jcp.org/jsf"
+      xmlns:c="http://xmlns.jcp.org/jsp/jstl/core">
+
+    <ui:composition template="/WEB-INF/template/adminLayout.xhtml">
+        <ui:define name="section-head">
+            <link rel="stylesheet" href="#{nav.compressPath()}/css/datatables.min.css"/>
+            <link rel="stylesheet" href="#{nav.compressPath()}/css/collector.min.css"/>
+            <link rel="stylesheet" href="#{nav.compressPath()}/css/jstree_style.min.css"/>
+            <link rel="stylesheet" href="#{nav.compressPath()}/css/materialize-stepper.min.css"/>
+
+            <style type="text/css">
+                input[type="radio"]:checked + label::after{
+                    background-color: #{confMB.colorSetup.hexaColor} !important;
+                    border: 2px solid #{confMB.colorSetup.hexaColor} !important;    
+                }   
+                .modal.open{
+                    width: 98% !important;
+                    max-height: 98%;
+                    height: 98%;
+                    top: 1% !important;
+                }
+
+                .jstree-node {
+                    font-size: 10pt;
+                }
+
+                .btn.disabled {
+                    background-color: lightgray;
+                    color: #fff; /* Cambia el color del texto si es necesario */
+                    /* Otros estilos para el botón deshabilitado */
+                }
+            </style>
+            <script>
+                function separarMiles(input) {
+                    // Eliminar los separadores de miles existentes
+                    var value = input.value.replace(/\./g, '');
+                    // Separar los miles con puntos
+                    var separatedValue = value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+                    // Actualizar el valor del campo de entrada
+                    input.value = separatedValue;
+                }
+            </script>
+
+            <script>
+                function prepararEnvio() {
+                    var input = document.getElementById("edit-limite_asignado");
+                    var value = input.value.replace(/\./g, ''); // Eliminar separadores de miles
+                    input.value = value; // Actualizar el valor del campo de entrada sin separadores
+                    // Aquí puedes continuar con la lógica de envío del formulario o guardar los datos en el back-end
+                }
+            </script>
+
+            <script>
+                var selectedId;
+
+                function showConfirmationModal(id) {
+                    selectedId = id; // Guardar el valor en una variable global
+
+                    // Mostrar el modal de confirmación
+                    document.getElementById('confirmation-modal').style.display = 'block';
+                }
+
+                function confirmAction() {
+                    // Ocultar el modal de confirmación
+                    document.getElementById('confirmation-modal').style.display = 'none';
+
+                    // Acceder al valor guardado en la variable global
+                    var id = selectedId;
+
+                    // Llamar a la función después de la confirmación
+                #{collectorRed.saveEditEntityAproved(true, id)};
+                }
+
+                function cancelAction() {
+                    // Ocultar el modal de confirmación
+                    document.getElementById('confirmation-modal').style.display = 'none';
+                }
+            </script>
+
+        </ui:define>
+
+        <ui:define name="section-title">
+            Bienvenido - AMB SUCURSALES
+        </ui:define>
+        <ui:define name="section-body">  
+            <div jsf:id="main-view-nsa">
+                <nav>
+                    <div class="nav-wrapper #{confMB.colorSetup.materialDesign}">
+                        <div class="row">
+                            <div jsf:id="div-btn-back-datatable" class="col s1" style="height: 0px !important;" >
+                                <h:form prependId="false">
+                                    <h:commandLink class="waves-effect waves-light #{confMB.colorSetup.materialDesign} "
+                                                   id="btn-back-datatable"
+                                                   rendered="#{collectorRed.collectorBraSelected == null ? 'false' : 'true'}"
+                                                   onclick="OverlayProcessActive();">
+                                        <i class="fa fa-chevron-circle-left fa-3x"></i>
+                                        <f:ajax event="click"
+                                                execute="@this"
+                                                listener="#{collectorRed.backDataTable()}"
+                                                render="main-view-nsa"/>
+                                    </h:commandLink>
+                                </h:form>
+                            </div>
+                            <div  jsf:id="div-breadcrumb-nsa">
+                                <b class="input-field col s2">Detalles de sobregiro</b>
+                            </div>
+                            <div jsf:id="div-breadcrumb-lim"  class="input-field col s3">
+                                <b>Limite de sobregiro : 
+                                    <h:outputText value="#{collectorRed.limite_sobregiro}">
+                                        <f:convertNumber pattern="#,##0"/>
+                                    </h:outputText>
+                                </b>
+                            </div> 
+                            <div jsf:id="div-breadcrumb-lim2" class="input-field col s3">
+                                <b>Limite de sobregiro : 
+                                    <h:outputText value="#{collectorRed.limiteasigandos}">
+                                        <f:convertNumber pattern="#,##0"/>
+                                    </h:outputText>
+                                </b>
+                            </div> 
+                            <div jsf:id="div-breadcrumb-lim3" class="input-field col s">
+                                <b>Limite de sobregiro : 
+                                    <h:outputText value="#{collectorRed.sobrante_asignacion}">
+                                        <f:convertNumber pattern="#,##0"/>
+                                    </h:outputText>
+                                </b> 
+                            </div> 
+                        </div> 
+                    </div>
+                </nav>
+                <br></br>
+                <div jsf:id="collector-table-nsa">
+                    <div  class="row" jsf:rendered="#{collectorRed.collectorBraSelected == null ? 'true' : 'false'}" >
+                        <table id="myTable" class="stripe" cellspacing="0" width="100%">
+
+                            <thead>
+                                <tr>
+                                    <th>Descripcion</th>
+                                    <th>Limite de sobregiro</th>
+                                    <th>Saldo pendiente</th>
+                                    <th>Dias de sobregiro</th>
+                                    <th>Bloqueado</th>
+                                    <th>Actualizar</th>
+                                </tr>
+                            </thead>
+                            <tfoot>
+                                <tr>
+                                    <th>Descripcion</th>
+                                    <th>Limite de sobregiro</th>
+                                    <th>Saldo pendiente</th>
+                                    <th>Dias de sobregiro</th>
+                                    <th>Bloqueado</th>
+                                    <th>Actualizar</th>
+                                </tr>
+                            </tfoot>
+                            <tbody>
+                                <h:form prependId="false">
+                                    <ui:repeat value="#{collectorRed.listsucursalred}" var="red" varStatus="redS" id="repeat-sucursal-red">
+                                        <tr>
+
+                                            <td>#{red.description.toUpperCase()}</td>
+                                            <td> <h:outputText value= "#{red.limite_sobregiro}">
+                                                    <f:convertNumber pattern="#,##0"/>
+                                                </h:outputText> </td>
+                                            <td> <h:outputText value= "#{red.outstandingbalance}">
+                                                    <f:convertNumber pattern="#,##0"/>
+                                                </h:outputText>
+                                            </td>
+                                            <td>#{red.dias_sobregiro}</td>
+                                            <td>#{red.locked == true ? 'Activo' : 'Bloqueado'}</td>
+                                            <td>
+
+
+
+                                                <h:commandLink class="btn-floating btn waves-effect waves-light #{confMB.colorSetup.materialDesign}"
+                                                               id="btn-selectd-collector">
+                                                    <i class="fa fa-search-plus" aria-hidden="true"/>
+                                                    <f:ajax event="click" 
+                                                            execute="@this"  
+                                                            render="collector-data collector-table-nsa div-btn-back-datatable div-breadcrumb-nsa div-breadcrumb-lim div-breadcrumb-lim2 div-breadcrumb-lim3"
+                                                            listener="#{collectorRed.collectorBrancSelected(red.idcollector)}"/>
+                                                </h:commandLink>
+                                            </td>
+                                        </tr>
+                                    </ui:repeat>
+                                </h:form>
+                            </tbody>
+                        </table>
+                    </div>
+                    <h:outputScript>
+                        $(function () {
+                        initDatatable();
+                        initClickRMenu();
+                        initMaterializeComponets();
+                        });
+                    </h:outputScript>
+                </div>
+                <div jsf:id="collector-data">
+                    <div class="row" jsf:rendered="#{collectorRed.collectorBraSelected == null ? 'false' : 'true'}" >
+                        <div class="page-container ">
+                            <div class="panel-container">
+                                <div class ="col s12">
+                                    <!-- Vista - Sucursal Seleccionado -->
+                                    <h:form id="collector-selected" prependId="false">                                           
+                                        <ul class="collapsible" data-collapsible="expandable">
+                                            <li>
+                                                <div class="collapsible-header active">
+                                                    <i class="fa fa-cart-plus" />
+                                                    <b>Detalles de la Sucursal</b>
+                                                </div>
+                                                <div class="collapsible-body">
+                                                    <div class="row">
+                                                        <div class="input-field col s4">
+                                                            <input id="id-entidad" type="text"  jsf:value="#{collectorRed.collectorBraSelected.identity}"  disabled="disabled" class="black-text">
+                                                                <f:ajax immediate="true"
+                                                                        execute="@this"/>
+                                                            </input>
+                                                            <label for="id-entidad">Id Entidad</label>
+                                                        </div>
+                                                        <div class="input-field col s4">
+                                                            <input id="id-collec-documenta" type="text"  jsf:value="#{collectorRed.collectorBraSelected.idcollector}" disabled="disabled" class="black-text">
+                                                                <f:ajax immediate="true"
+                                                                        execute="@this"/>
+                                                            </input>
+                                                            <label for="id-collec-documenta">Id Sucursal-Collector</label>
+                                                        </div>
+                                                        <div class="input-field col s4">
+                                                            <input id="collec-desc" type="text"  jsf:value="#{collectorRed.collectorBraSelected.description}"  disabled="disabled" class="black-text">
+                                                                <f:ajax immediate="true"
+                                                                        execute="@this"/>
+                                                            </input>
+                                                            <label for="edit-collec-desc">Descripcion</label>
+                                                        </div>
+                                                        <div class="input-field col s4">
+                                                            <input id="edit-limite_asignado" type="text"  jsf:value="#{collectorRed.collectorBraSelected.limite_sobregiro}"  disabled="disabled" class="black-text"  oninput="separarMiles(this)">
+                                                                <f:convertNumber pattern="#,##0"/>
+                                                                <h:inputHidden id="dias_sobre_giro_hidden" value="#{collectorRed.collectorBraSelected.limite_sobregiro}"/>
+                                                                <f:ajax immediate="true"
+                                                                        execute="@this"/>
+                                                            </input>
+                                                            <label for="edit-limite_asignado">Limite asignado</label>
+                                                        </div>
+                                                        <div class="input-field col s4">
+                                                            <input id="dias_sobre_giro" type="text"  jsf:value="#{collectorRed.collectorBraSelected.dias_sobregiro}"  disabled="disabled" class="black-text">
+
+                                                                <f:ajax immediate="true"
+                                                                        execute="@this"/>
+                                                            </input>
+                                                            <label for="dias_sobre_giro">Dias de Sobregiro</label>
+                                                        </div>
+                                                        <div class="input-field col s4" >
+                                                            <div class="input-field  col s4"  >
+                                                                <label>Sucursal activo</label>
+                                                            </div>
+                                                            <div class="input-field  col s5">
+                                                                <div class="switch" id="lockedSwitch">
+                                                                    <label for="activoSucursal" title="Sucursal_activo">
+                                                                        Bloqueado
+                                                                        <input type="checkbox" id="activoSucursal" jsf:value="#{collectorRed.collectorBraSelected.locked}">
+                                                                            <h:inputHidden id="activoSucursal_hidden" value="#{collectorRed.collectorBraSelected.locked}"/>
+                                                                            <f:ajax immediate="true"
+                                                                                    execute="@this"
+                                                                                    event="change"/>
+                                                                        </input>
+                                                                        <span class="lever"></span>
+                                                                        Activo
+                                                                    </label>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="grid formgrid"  id="editCollector">
+
+                                                        <h:commandLink id="btn-edit_collector" 
+                                                                       class="btn waves-effect waves-light #{confMB.colorSetup.materialDesign}" 
+                                                                       rendered="#{!collectorRed.editable}"  >
+                                                            <i class="fa fa-pencil"/> Actualizar
+                                                            <f:ajax execute="@this"
+                                                                    listener="#{collectorRed.changeEdit()}"  
+                                                                    render=" collector-selected"/>
+
+                                                        </h:commandLink>
+
+                                                        <h:commandLink id="btn-save-edit-collector"  style="margin-left: 2px"
+                                                                       class="btn waves-effect waves-light #{confMB.colorSetup.materialDesign}"
+                                                                       rendered="#{collectorRed.editable}">
+                                                            <i class="fa fa-save"/> Guardar
+                                                            <f:ajax event="click" 
+                                                                    execute="@this"  
+                                                                    render="collector-selected div-breadcrumb-lim div-breadcrumb-lim2 div-breadcrumb-lim3"
+                                                                    listener="#{collectorRed.saveEditEntityAccountCollector(collectorRed.collectorBraSelected.limite_sobregiro, collectorRed.collectorBraSelected.locked)}"/>
+                                                        </h:commandLink>
+
+                                                        <h:commandLink id="btn-cancel-edit-collector"  style="margin-left: 2px"
+                                                                       class="btn waves-effect waves-light #{confMB.colorSetup.materialDesign}"
+                                                                       rendered="#{collectorRed.editable}">
+                                                            <i class="fa fa-close"/> Cancelar
+                                                            <f:ajax event="click" 
+                                                                    execute="@this"  
+                                                                    render="collector-selected div-breadcrumb-lim div-breadcrumb-lim2 div-breadcrumb-lim3"
+                                                                    listener="#{collectorRed.CancelCollectorIn()}"/>
+                                                        </h:commandLink>   
+                                                    </div>
+
+                                                </div>
+                                            </li>
+
+                                            <!-- Detalles + cabecera-->
+                                            <li>
+                                                <div class="collapsible-header active">
+                                                    <i class="material-icons fa fa-search" />
+                                                    <b>Detalles del deposito</b>
+                                                </div>
+                                                <div class="collapsible-body">
+                                                    <div id="find-detalle-table">
+                                                        <h:form  id="form-detalle" prependId="false">
+                                                            <center>
+                                                                <b>Saldo Pendiente : 
+                                                                    <h:outputText value="#{collectorRed.saldopendiente}">
+                                                                        <f:convertNumber pattern="#,##0"/>
+                                                                    </h:outputText>
+                                                                </b> 
+                                                                <hr></hr>
+                                                            </center>
+                                                            <div class="row">
+                                                                <div jsf:id="detalle-table">
+                                                                    <div  class="row" >
+                                                                        <table id="myTable_detalle" class="stripe" cellspacing="0" width="100%">
+                                                                            <thead>
+                                                                                <tr>
+                                                                                    <th>Nro de detalle</th>
+                                                                                    <th>Nro Comprobante</th>
+                                                                                    <th>Tipo de deposito</th>
+                                                                                    <th>Fecha depositada</th>
+                                                                                    <th>Monto</th>
+                                                                                    <th>Probada</th>
+                                                                                    <th>Acciones</th>
+                                                                                </tr>
+                                                                            </thead>
+                                                                            <tbody>
+
+                                                                                <ui:repeat value="#{collectorRed.listCollectoroverdraftdetail}" var="detail" varStatus="detailS" id="repeat-detail">
+                                                                                    <tr>
+                                                                                        <td>#{detail.idcollectoroverdrafdetail}</td>
+                                                                                        <td>#{detail.voucheroperationnumber}</td>
+                                                                                        <td>#{collectorRed.obtenerTipoDeposito(detail)}</td>
+                                                                                        <td><h:outputText value="#{detail.depositdate}">
+                                                                                                <f:convertDateTime pattern="dd/MM/yyyy" />
+                                                                                            </h:outputText></td>
+                                                                                        <td> <h:outputText value="#{detail.amountdeposited}">
+                                                                                                <f:convertNumber pattern="#,##0"/>
+                                                                                            </h:outputText></td>
+                                                                                        <td>
+                                                                                            <div class="switch">
+                                                                                                <label> 
+                                                                                                    Pendiente
+                                                                                                    <input type="checkbox" id="edit2-pendienteapro" jsf:value="#{detail.approved}" disabled="disabled">
+                                                                                                        <h:inputHidden id="proved_hidden" value="#{detail.approved}"/>
+                                                                                                        <f:ajax immediate="true"
+                                                                                                                execute="@this"
+                                                                                                                event="change"/>
+                                                                                                    </input>
+                                                                                                    <span class="lever"></span>
+                                                                                                    Aprobado
+                                                                                                </label>
+                                                                                            </div>
+                                                                                        </td>
+                                                                                        <td>
+                                                                                            <div>
+                                                                                                <h:commandLink id="btn-save-edit-collector" style="display: inline-block; margin-right: 5px"
+                                                                                                               class="btn waves-effect waves-light #{confMB.colorSetup.materialDesign}
+                                                                                                               #{detail.approved ? 'disabled' : ''}"
+                                                                                                               rendered="#{!collectorRed.editable}" disabled="#{detail.approved}"
+                                                                                                               title="Aprobar depósito"
+                                                                                                               onclick="showConfirmationModal(#{detail.idcollectoroverdrafdetail})">
+                                                                                                    <i class="fa fa-check"/>
+                                                                                                    <f:ajax event="click" execute="@this" render="collector-selected form-detalle" listener="#{collectorRed.saveEditEntityAproved(true, detail.idcollectoroverdrafdetail)}"/>
+                                                                                                </h:commandLink>
+                                                                                                <h:commandLink id="btn-save-rechazar-collector"  style="display: inline-block"
+                                                                                                               class="btn waves-effect waves-light #{confMB.colorSetup.materialDesign}
+                                                                                                               #{detail.approved ? 'disabled' : ''}"
+                                                                                                               rendered="#{!collectorRed.editable}" disabled="#{detail.approved}"
+                                                                                                               title="Rechazar deposito"
+                                                                                                               >
+                                                                                                    <i class="fa fa-times"/> 
+                                                                                                    <f:ajax event="click" 
+                                                                                                            execute="@this"  
+                                                                                                            render="collector-selected form-detalle"
+                                                                                                            listener="#{collectorRed.saveEditEntityAproved(false ,detail.idcollectoroverdrafdetail)}"/>
+                                                                                                </h:commandLink>
+
+
+                                                                                            </div>
+                                                                                        </td>
+                                                                                    </tr>
+
+                                                                                </ui:repeat>
+                                                                            </tbody>
+                                                                        </table>
+                                                                    </div>
+
+                                                                    <h:outputScript>
+                                                                        $(function () {
+                                                                        initDatatable();
+                                                                        initClickRMenu();
+                                                                        initMaterializeComponets();
+                                                                        });
+                                                                    </h:outputScript>
+                                                                </div>
+
+                                                            </div>
+                                                        </h:form>
+                                                        <div id="confirmation-modal" style="display: none;">
+                                                            <p>¿Estás seguro de que quieres aprobar el depósito?</p>
+                                                            <button onclick="confirmAction()">Confirmar</button>
+                                                            <button onclick="cancelAction()">Cancelar</button>
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+                                            </li>
+                                        </ul>
+
+
+                                        <h:outputScript>
+                                            $(function () {
+                                            initMaterializeComponets();
+                                            });
+                                        </h:outputScript>
+                                    </h:form>
+
+                                    <h:outputScript>
+                                        $(document).ready(function() {
+                                        $("input").change(function() {
+                                        if($(this).is(":checked")) {
+                                        $('#btn-edit').click()
+                                        }
+                                        else {
+                                        $('#btn-edit').click()
+                                        }
+                                        })
+                                        });
+
+                                        $(function () {
+                                        initMaterializeComponets();
+
+                                        });
+                                    </h:outputScript>
+                                </div>
+                                <h:outputScript>
+                                    $(function () {
+
+                                    initMaterializeComponets();
+
+                                    $(".panel-left").resizable({
+                                    handleSelector: ".splitter",
+                                    resizeHeight: false
+                                    });
+
+                                    $(".panel-top").resizable({
+                                    handleSelector: ".splitter-horizontal",
+                                    resizeWidth: false
+                                    });
+                                    });
+                                </h:outputScript>
+
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <script src="#{nav.compressPath()}/js/datatables.min.js"></script>
+            <script src="#{nav.compressPath()}/js/collector.min.js"></script> 
+            <script src="#{nav.compressPath()}/js/jstree_ori.min.js"></script>
+            <script src="#{nav.compressPath()}/js/gmaps.min.js"></script>
+            <script src="#{nav.compressPath()}/js/maps-nanduti.min.js"></script>
+            <script src="#{nav.compressPath()}/js/materialize-stepper.min.js"></script>
+            <script src="#{nav.compressPath()}/js/chip-roluser.min.js"></script>
+            <script src="#{nav.compressPath()}/js/jquery.inputmask.bundle.min.js"></script>
+            <script src="#{nav.compressPath()}/js/jquery.inputmask.personalize.min.js"></script>                    
+
+            <h:outputScript>
+                $(function () {
+                initMaterializeComponets();
+                $('.chips').material_chip();
+                });
+            </h:outputScript>
+        </ui:define>
+        <script src="#{nav.compressPath()}/js/fav.min.js"></script>
+        <script src="#{nav.compressPath()}/js/materialize-stepper.min.js"></script>
+    </ui:composition>
+
+</html>
 
